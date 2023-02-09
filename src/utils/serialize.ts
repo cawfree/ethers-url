@@ -1,7 +1,9 @@
 import {ethers} from 'ethers';
 
-import {SCHEMA_SHORT} from '../constants';
-import {bigNumberToDecimal} from "./number";
+import type {SerializableTransaction} from '../@types';
+
+import {PREFIX_PAY, SCHEMA_LONG} from '../constants';
+import {bigNumberToDecimal} from './number';
 
 const invalidAddressError = (to: unknown) =>
   new Error(`Expected valid "to" address, encountered "${String(to)}".`);
@@ -60,10 +62,16 @@ const serializeChainId = (chainId: number | undefined) => {
   return `@${String(chainId)}`;
 };
 
+export const getTransactionPrefix = (to: string) => {
+  if (to.startsWith('0x')) return '';
+
+  return PREFIX_PAY;
+};
+
 export function serialize({
   tx,
 }: {
-  readonly tx: Partial<ethers.Transaction>;
+  readonly tx: SerializableTransaction;
 }) {
   const {to: maybeTo} = tx;
 
@@ -77,7 +85,6 @@ export function serialize({
   const gasLimitParam = serializeGasLimit(tx.gasLimit);
   const maxFeePerGasParam = serializeMaxFeePerGas(tx.maxFeePerGas);
   const maxPriorityFeePerGasParam = serializeMaxPriorityFeePerGas(tx.maxPriorityFeePerGas);
-  //const chainIdParam = serializeChainId(tx.chainId);
 
   const parameters = [
     valueParam,
@@ -87,9 +94,13 @@ export function serialize({
     maxPriorityFeePerGasParam,
   ].filter(e => e.length);
 
+  const maybePrefix = getTransactionPrefix(to);
+
   const url = `${
-    SCHEMA_SHORT
+    SCHEMA_LONG
   }:${
+    maybePrefix.length ? `${maybePrefix}-` : maybePrefix
+  }${
     to
   }${
     serializeChainId(tx.chainId)

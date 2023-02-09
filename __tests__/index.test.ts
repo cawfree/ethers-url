@@ -1,8 +1,24 @@
 import 'jest';
 
 import { ethers } from 'ethers';
+import qrcode from 'qrcode';
 
-import {bigNumberToDecimal, isValidEns, SCHEMA_SHORT, serialize} from '../src';
+import {
+  bigNumberToDecimal,
+  isValidEns,
+  PREFIX_PAY,
+  SCHEMA_LONG,
+  serialize,
+} from '../src';
+
+const qr = async (url: string) => {
+  const code = (await qrcode.toString(url, { type:'terminal' }));
+
+  console.log(url);
+  console.log(code);
+
+  return code;
+};
 
 describe('ethers-url', () => {
   it('jest', expect(true).toBeTruthy);
@@ -18,6 +34,7 @@ describe('ethers-url', () => {
   describe('serialize', () => {
 
     it('to:invalid', () => {
+      // @ts-expect-error invalid_type
       expect(() => serialize({tx: {}})).toThrowErrorMatchingSnapshot();
       expect(() => serialize({tx: {to: ''}})).toThrowErrorMatchingSnapshot();
       // @ts-expect-error invalid_type
@@ -30,7 +47,7 @@ describe('ethers-url', () => {
       const {url} = serialize({
         tx: {to},
       });
-      expect(url).toBe(`${SCHEMA_SHORT}:${to}`);
+      expect(url).toBe(`${SCHEMA_LONG}:${to}`);
     });
 
     it('to:valid:ens', () => {
@@ -38,7 +55,7 @@ describe('ethers-url', () => {
       const {url} = serialize({
         tx: {to},
       });
-      expect(url).toBe(`${SCHEMA_SHORT}:${to}`);
+      expect(url).toBe(`${SCHEMA_LONG}:${PREFIX_PAY}-${to}`);
     });
 
     it('to:valid:address:value', () => {
@@ -49,7 +66,7 @@ describe('ethers-url', () => {
           value: ethers.utils.parseEther('1'),
         },
       });
-      expect(url).toBe(`${SCHEMA_SHORT}:${to}?value=1e18`);
+      expect(url).toBe(`${SCHEMA_LONG}:${to}?value=1e18`);
     });
 
     it('to:valid:address:value:gasLimit:gasPrice:maxFeePerGas:maxPriorityFeePerGas', () => {
@@ -65,7 +82,7 @@ describe('ethers-url', () => {
         },
       });
       // TODO: check for gas and gasLimit on reconstruction
-      expect(url).toBe(`${SCHEMA_SHORT}:${to}?value=1e18&gasPrice=2.5e17&gas=5e17&maxFeePerGas=1.25e17&maxPriorityFeePerGas=6.25e16`);
+      expect(url).toBe(`${SCHEMA_LONG}:${to}?value=1e18&gasPrice=2.5e17&gas=5e17&maxFeePerGas=1.25e17&maxPriorityFeePerGas=6.25e16`);
     });
     it('to:valid:chainId', () => {
       const {address: to} = ethers.Wallet.createRandom();
@@ -75,7 +92,31 @@ describe('ethers-url', () => {
           chainId: 1,
         },
       });
-      expect(url).toBe(`${SCHEMA_SHORT}:${to}@1`);
+      expect(url).toBe(`${SCHEMA_LONG}:${to}@1`);
+    });
+
+    it('qr:cawfree.eth:0.042', async () => {
+
+      const {url} = serialize({
+        tx: {
+          to: 'cawfree.eth',
+          value: ethers.utils.parseEther('0.042'),
+        },
+      });
+
+      expect(await qr(url)).toMatchSnapshot();
+    });
+
+    it('qr:0xBd2B3396cdc1980457c91f4058D6FfcbDaF7F846:0.042', async () => {
+
+      const {url} = serialize({
+        tx: {
+          to: '0xBd2B3396cdc1980457c91f4058D6FfcbDaF7F846',
+          value: ethers.utils.parseEther('0.042'),
+        },
+      });
+
+      expect(await qr(url)).toMatchSnapshot();
     });
   });
 });
