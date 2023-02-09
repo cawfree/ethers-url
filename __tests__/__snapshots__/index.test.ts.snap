@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ethers-url serialize to:invalid 1`] = `"Expected valid "to" address, encountered "undefined"."`;
+
+exports[`ethers-url serialize to:invalid 2`] = `"Expected valid "to" address, encountered ""."`;
+
+exports[`ethers-url serialize to:invalid 3`] = `"Expected valid "to" address, encountered "null"."`;
+
+exports[`ethers-url serialize to:invalid 4`] = `"Expected valid "to" address, encountered "<invalid>"."`;
