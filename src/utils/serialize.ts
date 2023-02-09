@@ -54,10 +54,11 @@ const serializeMaxPriorityFeePerGas = paramSerializationThunk({
   serialize: bigNumberToDecimal,
 });
 
-const serializeChainId = paramSerializationThunk({
-  param: 'chainId',
-  serialize: (value: number) => String(value),
-});
+const serializeChainId = (chainId: number | undefined) => {
+  if (typeof chainId !== 'number') return '';
+
+  return `@${String(chainId)}`;
+};
 
 export function serialize({
   tx,
@@ -76,7 +77,7 @@ export function serialize({
   const gasLimitParam = serializeGasLimit(tx.gasLimit);
   const maxFeePerGasParam = serializeMaxFeePerGas(tx.maxFeePerGas);
   const maxPriorityFeePerGasParam = serializeMaxPriorityFeePerGas(tx.maxPriorityFeePerGas);
-  const chainIdParam = serializeChainId(tx.chainId);
+  //const chainIdParam = serializeChainId(tx.chainId);
 
   const parameters = [
     valueParam,
@@ -84,13 +85,14 @@ export function serialize({
     gasLimitParam,
     maxFeePerGasParam,
     maxPriorityFeePerGasParam,
-    chainIdParam,
   ].filter(e => e.length);
 
   const url = `${
     SCHEMA_SHORT
   }:${
     to
+  }${
+    serializeChainId(tx.chainId)
   }${
     parameters.length ? '?' : ''
   }${

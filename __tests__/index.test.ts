@@ -75,7 +75,7 @@ describe('ethers-url', () => {
           chainId: 1,
         },
       });
-      expect(url).toBe(`${SCHEMA_SHORT}:${to}?chainId=1`);
+      expect(url).toBe(`${SCHEMA_SHORT}:${to}@1`);
     });
   });
 });
