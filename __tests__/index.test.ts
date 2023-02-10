@@ -3,12 +3,15 @@ import 'jest';
 import { ethers } from 'ethers';
 import qrcode from 'qrcode';
 
+import erc20 from '../__fixtures__/erc20.abi.json';
+
 import {
   bigNumberToDecimal,
   isValidEns,
   PREFIX_PAY,
   SCHEMA_LONG,
   serialize,
+  wrap,
 } from '../src';
 
 const qr = async (url: string) => {
@@ -44,7 +47,7 @@ describe('ethers-url', () => {
 
     it('to:valid:address', () => {
       const {address: to} = ethers.Wallet.createRandom();
-      const {url} = serialize({
+      const url = serialize({
         tx: {to},
       });
       expect(url).toBe(`${SCHEMA_LONG}:${to}`);
@@ -52,7 +55,7 @@ describe('ethers-url', () => {
 
     it('to:valid:ens', () => {
       const to = 'cawfree.eth';
-      const {url} = serialize({
+      const url = serialize({
         tx: {to},
       });
       expect(url).toBe(`${SCHEMA_LONG}:${PREFIX_PAY}-${to}`);
@@ -60,7 +63,7 @@ describe('ethers-url', () => {
 
     it('to:valid:address:value', () => {
       const {address: to} = ethers.Wallet.createRandom();
-      const {url} = serialize({
+      const url = serialize({
         tx: {
           to,
           value: ethers.utils.parseEther('1'),
@@ -71,7 +74,7 @@ describe('ethers-url', () => {
 
     it('to:valid:address:value:gasLimit:gasPrice:maxFeePerGas:maxPriorityFeePerGas', () => {
       const {address: to} = ethers.Wallet.createRandom();
-      const {url} = serialize({
+      const url = serialize({
         tx: {
           to,
           value: ethers.utils.parseEther('1'),
@@ -86,7 +89,7 @@ describe('ethers-url', () => {
     });
     it('to:valid:chainId', () => {
       const {address: to} = ethers.Wallet.createRandom();
-      const {url} = serialize({
+      const url = serialize({
         tx: {
           to,
           chainId: 1,
@@ -96,8 +99,7 @@ describe('ethers-url', () => {
     });
 
     it('qr:cawfree.eth:0.042', async () => {
-
-      const {url} = serialize({
+      const url = serialize({
         tx: {
           to: 'cawfree.eth',
           value: ethers.utils.parseEther('0.042'),
@@ -108,8 +110,7 @@ describe('ethers-url', () => {
     });
 
     it('qr:0xBd2B3396cdc1980457c91f4058D6FfcbDaF7F846:0.042', async () => {
-
-      const {url} = serialize({
+      const url = serialize({
         tx: {
           to: '0xBd2B3396cdc1980457c91f4058D6FfcbDaF7F846',
           value: ethers.utils.parseEther('0.042'),
@@ -117,6 +118,19 @@ describe('ethers-url', () => {
       });
 
       expect(await qr(url)).toMatchSnapshot();
+    });
+
+    it('wrapped:weth', async () => {
+      const weth = new ethers.Contract('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', erc20);
+      const wrappedWeth = wrap(weth);
+      expect(
+        await wrappedWeth.transfer(
+          ethers.utils.getAddress('0x8e23ee67d1332ad560396262c48ffbb01f93d052'),
+          ethers.BigNumber.from('1'),
+        )
+      ).toBe(
+        'ethereum:0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/transfer?address=0x8e23Ee67d1332aD560396262C48ffbB01F93D052&uint256=1'
+      );
     });
   });
 });

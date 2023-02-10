@@ -1,3 +1,6 @@
 import type {ethers} from 'ethers';
 
-export type SerializableTransaction = Partial<ethers.Transaction> & Required<Pick<ethers.Transaction, 'to'>>;
+export type WrappedContract<T extends ethers.Contract> = T & {
+  readonly [key in keyof T]: (...args: Array<any>) => Promise<string>;
+};
+

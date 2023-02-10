@@ -1,9 +1,9 @@
 import {ethers} from 'ethers';
 
-import type {SerializableTransaction} from '../@types';
-
+import type {WrappedContract} from '../@types';
 import {PREFIX_PAY, SCHEMA_LONG} from '../constants';
-import {bigNumberToDecimal} from './number';
+
+import {bigNumberToDecimal, maybeBigNumber} from './number';
 
 const invalidAddressError = (to: unknown) =>
   new Error(`Expected valid "to" address, encountered "${String(to)}".`);
@@ -68,10 +68,43 @@ export const getTransactionPrefix = (to: string) => {
   return PREFIX_PAY;
 };
 
+export const functionArgumentToParam = (
+  paramType: ethers.utils.ParamType,
+  result: ethers.utils.Result[number],
+): string => {
+  // TODO: fix the typing properly
+  return `${paramType.type}=${String(result)}`;
+};
+
+export const getMaybeInvocation = (
+  contract: ethers.Contract | undefined,
+  data: string | undefined,
+): readonly string[] => {
+  if (!contract || !data) return [];
+
+  if (!maybeBigNumber(data)) return [];
+
+  const decodedData = contract.interface.parseTransaction({data});
+
+  const {
+    name: functionName,
+    args,
+    functionFragment,
+  } = decodedData;
+
+  const {inputs} = functionFragment;
+
+  const params = inputs.map((paramType, i) => functionArgumentToParam(paramType, args[i]));
+
+  return [functionName, ...params];
+};
+
 export function serialize({
   tx,
+  __contract: maybeContract = undefined,
 }: {
-  readonly tx: SerializableTransaction;
+  readonly tx: Partial<ethers.Transaction>;
+  readonly __contract?: ethers.Contract;
 }) {
   const {to: maybeTo} = tx;
 
@@ -86,7 +119,15 @@ export function serialize({
   const maxFeePerGasParam = serializeMaxFeePerGas(tx.maxFeePerGas);
   const maxPriorityFeePerGasParam = serializeMaxPriorityFeePerGas(tx.maxPriorityFeePerGas);
 
+  const maybePrefix = getTransactionPrefix(to);
+
+  const [
+    maybeFunctionInvocation,
+    ...maybeInvocationArguments
+  ] = getMaybeInvocation(maybeContract, tx.data);
+
   const parameters = [
+    ...maybeInvocationArguments,
     valueParam,
     gasPriceParam,
     gasLimitParam,
@@ -94,14 +135,14 @@ export function serialize({
     maxPriorityFeePerGasParam,
   ].filter(e => e.length);
 
-  const maybePrefix = getTransactionPrefix(to);
-
-  const url = `${
+  return `${
     SCHEMA_LONG
   }:${
     maybePrefix.length ? `${maybePrefix}-` : maybePrefix
   }${
     to
+  }${
+    maybeFunctionInvocation ? `/${maybeFunctionInvocation}` : ''
   }${
     serializeChainId(tx.chainId)
   }${
@@ -109,6 +150,36 @@ export function serialize({
   }${
     parameters.join('&')
   }`;
+}
 
-  return {url};
+export function wrap<
+  Contract extends ethers.Contract
+>(contract: Contract): WrappedContract<Contract> {
+  return new Proxy(
+    {...contract},
+    {
+      get(target: Contract, maybeFunctionName: string | symbol): any {
+
+        if (typeof maybeFunctionName !== 'string')
+          throw new Error(`Unable to access property "${String(maybeFunctionName)}".`);
+
+        const ref = target[maybeFunctionName];
+
+        if (typeof ref !== 'function') return ref;
+
+        const abi = contract.interface.getFunction(maybeFunctionName);
+
+        if (!abi)
+          throw new Error(`Expected ABIFunction "${
+            maybeFunctionName
+          }", encountered "${
+            String(abi)
+          }".`);
+
+        return async (...args: Array<any>): Promise<string> => serialize({
+          __contract: target,
+          tx: await target.populateTransaction[maybeFunctionName]!(...args),
+        });
+      }
+  });
 }
