@@ -72,8 +72,12 @@ export const functionArgumentToParam = (
   paramType: ethers.utils.ParamType,
   result: ethers.utils.Result[number],
 ): string => {
-  // TODO: fix the typing properly
-  return `${paramType.type}=${String(result)}`;
+
+  const value = paramType.type === 'bool'
+    ? Number(result)
+    : String(result);
+
+  return `${paramType.type}=${value}`;
 };
 
 export const getMaybeInvocation = (
