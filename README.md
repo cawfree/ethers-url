@@ -1,4 +1,7 @@
 ## [`ethers-url`](https://github.com/cawfree/ethers-url)
+
+> ⚠️ This project is still under development.
+
 🦄 🐝 [__Ethereum URL__](https://eips.ethereum.org/EIPS/eip-681) parsing and generation using [`ethers`](https://github.com/ethers-io/ethers.js).
 
 ### 🚀 getting started
