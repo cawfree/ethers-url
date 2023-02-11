@@ -18,6 +18,8 @@ Next, it's easy to take any existing contract interactions you're using and gene
 import {ethers} from 'ethers';
 import {wrap} from 'ethers-url';
 
+import erc20 from './erc20.abi.json';
+
 // This is a proxy of the Contract.
 // Traditionally, where you'd usually invoke transactions, you will now receive equivalent transaction URLs.
 const wrappedWeth = wrap(
