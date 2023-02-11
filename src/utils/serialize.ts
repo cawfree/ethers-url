@@ -1,6 +1,5 @@
 import {ethers} from 'ethers';
 
-import type {WrappedContract} from '../@types';
 import {PREFIX_PAY, SCHEMA_LONG} from '../constants';
 
 import {bigNumberToDecimal, maybeBigNumber} from './number';
@@ -154,36 +153,4 @@ export function serialize({
   }${
     parameters.join('&')
   }`;
-}
-
-export function wrap<
-  Contract extends ethers.Contract
->(contract: Contract): WrappedContract<Contract> {
-  return new Proxy(
-    {...contract},
-    {
-      get(target: Contract, maybeFunctionName: string | symbol): any {
-
-        if (typeof maybeFunctionName !== 'string')
-          throw new Error(`Unable to access property "${String(maybeFunctionName)}".`);
-
-        const ref = target[maybeFunctionName];
-
-        if (typeof ref !== 'function') return ref;
-
-        const abi = contract.interface.getFunction(maybeFunctionName);
-
-        if (!abi)
-          throw new Error(`Expected ABIFunction "${
-            maybeFunctionName
-          }", encountered "${
-            String(abi)
-          }".`);
-
-        return async (...args: Array<any>): Promise<string> => serialize({
-          __contract: target,
-          tx: await target.populateTransaction[maybeFunctionName]!(...args),
-        });
-      }
-  });
 }

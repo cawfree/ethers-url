@@ -120,6 +120,15 @@ describe('ethers-url', () => {
       expect(await qr(url)).toMatchSnapshot();
     });
 
+    it('donation link', async () => {
+      const url = serialize({
+        tx: {
+          to: 'cawfree.eth',
+        },
+      });
+      expect(url).toBe('ethereum:pay-cawfree.eth');
+    });
+
     it('wrapped:weth', async () => {
       const weth = new ethers.Contract('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', erc20);
       const wrappedWeth = wrap(weth);
